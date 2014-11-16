@@ -1,33 +1,48 @@
+// Authors:
+// Rohan Parikh, Neelang Naval
+// This code is part of our security class computer project 
+
+
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
+import org.bouncycastle.crypto.DataLengthException;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.SerpentEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPrivateKeySpec;
-import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class part1 {
 	
-	
-	public static void encryptWithAES(int keysize, String mode, String plaintext){
-		// AES Encryption
-		// Initialization vector for AES
-    	byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,0, 0, 0, 0,0, 0, 0, 0};
-    	IvParameterSpec ivspec = new IvParameterSpec(iv);
-    	Cipher c;
-    	// Symmetric key generator
-    	KeyGenerator keyGen = null;
+	// Static method to encrypt with AES
+	public static double encryptWithAES(int keysize, String mode, String plaintext){
+		double start = 0;
+		double stop = 0;
 		try {
+			// the initializtion vector
+			byte[] IV = new byte[16];		 
+	    	new Random().nextBytes(IV);
+	    	IvParameterSpec ivspec = new IvParameterSpec(IV);
+	    	Cipher c;								
+	    	KeyGenerator keyGen = null;
 			// AES with mode and padding scheme ?
 			c = Cipher.getInstance("AES/"+mode+"/PKCS5Padding");
 			keyGen = KeyGenerator.getInstance("AES");
@@ -36,107 +51,215 @@ public class part1 {
 	    	// Initializing to encrypt
 	    	c.init(Cipher.ENCRYPT_MODE,secretKey, ivspec);
 	    	// Getting the plain text bytes
-	    	double start = System.nanoTime();
+	    	start = System.nanoTime();
 	        byte[] cipherTextAES = c.doFinal(plaintext.getBytes());
-	        double stop = System.nanoTime();
-	        System.out.println("Time taken is: "+ (stop - start));
-	        String  cipherText = new String(cipherTextAES, "UTF-8");
-	        //System.out.println(cipherText);
-	        // Initializing for decryption
-	        c.init(Cipher.DECRYPT_MODE, secretKey, ivspec);
-	        byte[] decipheredText = c.doFinal(cipherTextAES);
-	        String decodedText = new String(decipheredText, "UTF-8");
+	        stop = System.nanoTime();
 	        //System.out.println(decodedText);
 		} catch (NoSuchAlgorithmException  e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
+		
+		return (stop - start);
 	}
 	
-	public static void encryptWithRSA(int keysize, String plaintext){
-		
+	
+	// Static method to encrypt with RSA
+	public static double encryptWithRSA(int keysize, String plaintext){
+		double start = 0;
+		double stop = 0;
 		// RSA Encryption
-    	Cipher c1;
+    	Cipher c;
 		try {
-			c1 = Cipher.getInstance("RSA");
+			c = Cipher.getInstance("RSA");
 			KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+			// Generating public and private key pair
 	    	kpg.initialize(keysize);
 	    	KeyPair kp = kpg.genKeyPair();
 	    	Key publicKey = kp.getPublic();
 	    	Key privateKey = kp.getPrivate();
-	    	KeyFactory fact = KeyFactory.getInstance("RSA");
-	    	RSAPublicKeySpec pub = fact.getKeySpec(kp.getPublic(), RSAPublicKeySpec.class);
-	    	RSAPrivateKeySpec priv = fact.getKeySpec(kp.getPrivate(), RSAPrivateKeySpec.class);
-	    	//System.out.println(priv.getPrivateExponent());
-	    	c1.init(Cipher.ENCRYPT_MODE, publicKey);
-	    	double start = System.nanoTime();
-	    	byte[] cipherTextRSA = c1.doFinal(plaintext.getBytes());
-	    	double stop = System.nanoTime();
-	    	System.out.println("Time taken is: "+ (stop - start));
-	    	String encodedRSACipher = new String(cipherTextRSA, "UTF-8");
-	        //System.out.println(encodedRSACipher);
-	        c1.init(Cipher.DECRYPT_MODE, privateKey);
-	        double start1 = System.nanoTime();
-	        byte[] decipherTextRSA = c1.doFinal(cipherTextRSA);
-	        double stop1 = System.nanoTime();
-	    	System.out.println("Time taken for decryption is: "+ (stop1 - start1));
-	        String decodedRSACipher = new String(decipherTextRSA, "UTF-8");
-	        //System.out.println(decodedRSACipher);
+	    	c.init(Cipher.ENCRYPT_MODE, publicKey);
+	    	start = System.nanoTime();
+	    	// Encrypting the plain text
+	    	byte[] cipherTextRSA = c.doFinal(plaintext.getBytes());
+	    	stop = System.nanoTime();
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeySpecException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	
+		} 
+    	return (stop - start);
     	
 		
+	}
+	
+	// Static method to encrypt with Serpent
+	// www.bouncycastle.org
+	public static double encrytWithSerpent(int keysize, String plaintext) throws UnsupportedEncodingException{
+		double start = 0;
+		double stop = 0;
+		
+		Security.addProvider(new BouncyCastleProvider());
+		int blockSize = 16;
+		byte[] IV = new byte[blockSize];
+		byte[] key = new byte[keysize/8];
+		byte[] pt = new byte[plaintext.getBytes().length];
+		byte[] ct = new byte[plaintext.getBytes().length];
+		new Random().nextBytes(key);
+		new Random().nextBytes(IV);
+		PaddedBufferedBlockCipher c = new PaddedBufferedBlockCipher( new CBCBlockCipher(new SerpentEngine()));
+		ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(key),IV);
+		c.init(true, parameterIV);
+		pt = plaintext.getBytes();
+		try {
+			start = System.nanoTime();
+			c.processBytes(pt, 0, pt.length, ct, 0);
+			c.doFinal(ct, 0);
+			stop = System.nanoTime();
+		} catch (DataLengthException e) {
+			e.printStackTrace();
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+		} catch (InvalidCipherTextException e) {
+			e.printStackTrace();
+		}
+		
+		return (stop -start);
+	}
+	
+	
+	// Static method to encrypt with Speck
+	// We have used the Speck Engine provided by bouncy castle library
+	// www.bouncycastle.org
+	public static double encryptWithSpeck(int keySize, int blockSize, String plaintext) throws UnsupportedEncodingException{
+		double start = 0;
+		double stop = 0;
+		
+		byte[] IV = new byte[8];
+		byte[] key = new byte[keySize/8];
+		byte[] pt = new byte[plaintext.getBytes().length];
+		byte[] ct = new byte[plaintext.getBytes().length];
+		new Random().nextBytes(key);
+		new Random().nextBytes(IV);
+		PaddedBufferedBlockCipher c = new PaddedBufferedBlockCipher( new CBCBlockCipher(new SpeckEngine(blockSize)));
+		ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(key),IV);
+		c.init(true, parameterIV);
+		pt = plaintext.getBytes();
+		try {
+			start = System.nanoTime();
+			c.processBytes(pt, 0, pt.length, ct, 0);
+			c.doFinal(ct, 0);
+			stop = System.nanoTime();
+		} catch (DataLengthException e) {
+			e.printStackTrace();
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+		} catch (InvalidCipherTextException e) {
+			e.printStackTrace();
+		}
+		return (stop -start);
+	}
+	
+	
+	// Static method to encrypt with Simon
+	// We have used Simon Engine provided by Bouncy Castle library
+	// www.bouncycastle.org
+	public static double encryptWithSimon(int keySize, int blockSize, String plaintext) throws UnsupportedEncodingException{
+		double start = 0;
+		double stop = 0;
+		
+		byte[] IV = new byte[8];
+		byte[] key = new byte[keySize/8];
+		byte[] pt = new byte[plaintext.getBytes().length];
+		byte[] ct = new byte[plaintext.getBytes().length];
+		new Random().nextBytes(key);
+		new Random().nextBytes(IV);
+		PaddedBufferedBlockCipher c = new PaddedBufferedBlockCipher( new CBCBlockCipher(new SimonEngine(blockSize)));
+		ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(key),IV);
+		c.init(true, parameterIV);
+		pt = plaintext.getBytes();
+		try {
+			start = System.nanoTime();
+			c.processBytes(pt, 0, pt.length, ct, 0);
+			c.doFinal(ct, 0);
+			stop = System.nanoTime();
+		} catch (DataLengthException e) {
+			e.printStackTrace();
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+		} catch (InvalidCipherTextException e) {
+			e.printStackTrace();
+		}
+		return (stop -start);
 	}
 
    
     public static void main(String...args) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, InvalidAlgorithmParameterException, InvalidKeySpecException{
     	
-        int[] keysizeAES = {1024, 2048};
-    	String text = "This is plaintext";
-    	for(int j=0; j< 100; j++){
-    		System.out.println("Loop iteration :"+j);
-    	for(int i=0; i < keysizeAES.length; i++){
-    		part1.encryptWithRSA(keysizeAES[i], text);
-    	}
-    	}
+        int[] keySizeAES = {128, 192, 256};
+        int[] keySizeRSA = {1024, 2048, 4096};
+        int[] keySizeSerpent = {128, 192, 256};
+        // Same key sizes for simon and speck
+        int[] keySizeSpeck32 = {64};
+        int[] keySizeSpeck48 = {72, 96};
+        int[] keySizeSpeck64 = {96, 128};
+        int[] keySizeSpeck96 = {96, 144};
+        int[] keySizeSpeck128 = {128,192, 256};
+        String mode = "CBC";
+        byte[] pt = new byte[1024*100]; 
+        new Random().nextBytes(pt);
+        
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("output.txt"), "utf-8"));
+        
+        ArrayList<Double> store = new ArrayList<Double>();
+        for(int i=0; i<keySizeAES.length; i++){
+        	writer.write("Key size is :"+keySizeAES[i]+"\n");
+        	for(int j=0; j<100; j++){
+        		store.add(part1.encryptWithAES(keySizeAES[i], mode, pt.toString()));
+        	}
+        	double avg=0;
+        	for(int k=0; k<store.size(); k++){
+            	writer.write("Time for "+k+"th iteration is :"+store.get(k)+"\n");
+            	avg = (avg + store.get(k))/2;
+            }
+        	store.clear();
+        	writer.write("Average time is "+avg);
+        	writer.write("\n");
+        }
+        System.out.println("Done with AES!");
+        for(int i=0; i<keySizeRSA.length; i++){
+        	writer.write("Key size is :"+keySizeRSA[i]+"\n");
+        	for(int j=0; j<100; j++){
+        		store.add(part1.encryptWithRSA(keySizeRSA[i], pt.toString()));
+        	}
+        	System.out.println("Done with RSA"+keySizeRSA[i]+"!");
+        	double avg=0;
+        	for(int k=0; k<store.size(); k++){
+            	writer.write("Time for "+k+"th iteration is :"+store.get(k)+"\n");
+            	avg = (avg + store.get(k))/2;
+            }
+        	store.clear();
+        	writer.write("Average time is "+avg);
+        	writer.write("\n");
+        }
+
+       writer.close();
+
+    	
     }
 }
